@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator erd {
+  provider = "prisma-erd-generator"
+}
+
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+//criar a primeira tabela para armazenar boloes(pool)
+model Pool {
+  id         String   @id @default(cuid()) //gerar o valor automaticamente 
+  title      String
+  code       String   @unique //codigo do bolao, valor unico
+  createdAt  DateTime @default(now()) //data que o bolão foi criado
+  ownerId     String?
+
+  participants Participant[]
+  owner       User?    @relation(fields: [ownerId], references: [id])    
+}  
+
+//Tabela de Participantes
+model Participant {
+  id         String   @id @default(cuid()) //gerar o valor automaticamente 
+  userId     String
+  poolId     String
+
+  guesses     Guess[]
+  user        User   @relation(fields: [userId], references: [id])
+  pool        Pool    @relation(fields: [poolId], references: [id])
+
+  //o mesmo usuario nao pode participar do mesmo bolão, so 1 vez pelo ID
+  @@unique([userId, poolId]) //informações unicas
+
+}
+
+
+//Tabela de Users
+model User { 
+  id         String   @id @default(cuid()) //gerar o valor automaticamente 
+  name       String   @unique
+  email      String
+  googleId  String?    @unique
+  avatarUrl  String?
+  createdAt  DateTime @default(now()) //data que o bolão foi criado
+
+  participantingAt Participant[] //usuario esta particopando em varios boloes
+  ownPools         Pool[] //boloes que esse usuario é dono
+}
+
+//Tabela de Jogos
+model Game {
+  id         String   @id @default(cuid()) //gerar o valor automaticamente 
+  date       DateTime    
+
+  firstTeamCountryCode   String
+  secondTeamCountryCode  String
+
+  guesses Guess[] //relacionamento inverso
+  
+}
+  
+//Tabela de Palpites
+model Guess {
+  id         String   @id @default(cuid()) //gerar o valor automaticamente 
+
+  firstTeamPoints   Int
+  secondTeamPoints  Int
+  createdAt         DateTime @default(now()) //data que o bolão foi criado
+  gameId            String   
+  participantId     String
+
+  //Relacionamento entre tabales
+  participant Participant @relation(fields: [participantId], references: [id])
+  game        Game @relation(fields: [gameId], references: [id])
+
+  //informações unicas  gameId e participantId 
+  @@unique([participantId, gameId ])
+
+}
